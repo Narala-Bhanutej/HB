@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}Canteen Admin Dashboard - Hostel Bites{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
+  <div>
+    <div style="display: flex; align-items: center; gap: 0.6rem;">
+      <h1 class="section-title">Canteen Kitchen & Order Operations</h1>
+      <span class="admin-badge">ADMIN</span>
+    </div>
+    <p style="color: var(--text-muted); font-size: 0.95rem;">
+      Manage live incoming student orders and dispatch room deliveries
+    </p>
+  </div>
+
+  <div style="display: flex; gap: 0.8rem; align-items: center;">
+    <a href="{{ url_for('admin_menu') }}" class="btn-primary" style="font-size: 0.9rem;">
+      🍔 Manage Food Menu
+    </a>
+    <a href="{{ url_for('admin_logout') }}" class="btn-outline" style="font-size: 0.9rem; color: var(--danger); border-color: var(--danger-bg);">
+      Logout Staff
+    </a>
+  </div>
+</div>
+
+<!-- Admin Stat Cards -->
+<div class="admin-stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon" style="background: var(--primary-subtle); color: var(--primary);">
+      📦
+    </div>
+    <div>
+      <div class="stat-val">{{ total_orders }}</div>
+      <div class="stat-title">Total Orders</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon" style="background: var(--success-bg); color: var(--success);">
+      💰
+    </div>
+    <div>
+      <div class="stat-val">₹{{ "%.0f"|format(total_revenue) }}</div>
+      <div class="stat-title">Total Revenue</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon" style="background: var(--warning-bg); color: var(--warning);">
+      🔥
+    </div>
+    <div>
+      <div class="stat-val">{{ active_orders }}</div>
+      <div class="stat-title">Active / In Kitchen</div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon" style="background: #F3E8FF; color: #7C3AED;">
+      ✅
+    </div>
+    <div>
+      <div class="stat-val">{{ delivered_orders }}</div>
+      <div class="stat-title">Delivered to Rooms</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter Toolbar -->
+<div style="background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.2rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+  <!-- Filter Chips -->
+  <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+    {% for s in ['All', 'Placed', 'Preparing', 'Out for delivery', 'Delivered', 'Cancelled'] %}
+      <a
+        href="{{ url_for('admin_dashboard', status=s) }}"
+        class="category-chip {% if status_filter == s %}active{% endif %}"
+        style="font-size: 0.8rem; padding: 0.35rem 0.85rem;"
+      >
+        {{ s }}
+      </a>
+    {% endfor %}
+  </div>
+
+  <!-- Search in Orders -->
+  <div style="min-width: 250px;">
+    <input
+      type="text"
+      id="admin-search-input"
+      class="form-control"
+      style="padding: 0.45rem 0.9rem; font-size: 0.88rem;"
+      placeholder="Search orders, student, roll no, room..."
+      onkeyup="filterAdminTable('admin-search-input', 'orders-table')"
+    >
+  </div>
+</div>
+
+<!-- Incoming Orders Table -->
+<div class="table-responsive">
+  <table class="data-table" id="orders-table">
+    <thead>
+      <tr>
+        <th>Order ID & Time</th>
+        <th>Student Details</th>
+        <th>Room Destination</th>
+        <th>Ordered Dishes</th>
+        <th>Bill & Payment</th>
+        <th>Update Order Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if orders %}
+        {% for entry in orders %}
+          {% set o = entry.order %}
+          {% set clean_status = o.status.replace(' ', '') %}
+          <tr>
+            <!-- Order ID -->
+            <td>
+              <a href="{{ url_for('track_order', order_number=o.order_number) }}" style="font-weight: 800; color: var(--primary); text-decoration: underline;" target="_blank">
+                {{ o.order_number }}
+              </a>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
+                {{ o.created_at }}
+              </div>
+            </td>
+
+            <!-- Student -->
+            <td>
+              <strong style="color: var(--dark);">{{ o.student_name }}</strong>
+              <div style="font-size: 0.78rem; color: var(--text-muted);">
+                Roll: {{ o.student_roll }} &bull; Ph: {{ o.phone }}
+              </div>
+            </td>
+
+            <!-- Room Destination -->
+            <td>
+              <strong>{{ o.hostel_block }}</strong>
+              <div style="color: var(--primary); font-weight: 700; font-size: 0.95rem;">
+                Room {{ o.room_no }}
+              </div>
+              {% if o.delivery_notes %}
+                <small style="color: #6B7280; display: block; max-width: 180px; font-style: italic;">
+                  "{{ o.delivery_notes }}"
+                </small>
+              {% endif %}
+            </td>
+
+            <!-- Items -->
+            <td>
+              <ul style="margin: 0; padding-left: 1.1rem; font-size: 0.82rem; color: var(--text-main);">
+                {% for item in entry.order_items %}
+                  <li><strong>{{ item.quantity }}x</strong> {{ item.item_name }}</li>
+                {% endfor %}
+              </ul>
+            </td>
+
+            <!-- Bill -->
+            <td>
+              <strong style="font-size: 1.05rem; color: var(--dark);">₹{{ "%.2f"|format(o.total_amount) }}</strong>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">
+                {{ o.payment_method }}
+              </div>
+            </td>
+
+            <!-- Status Form -->
+            <td>
+              <form action="{{ url_for('update_order_status', order_id=o.id) }}" method="POST" style="display: flex; gap: 0.4rem; align-items: center;">
+                <select name="status" class="form-control" style="padding: 0.35rem 0.6rem; font-size: 0.82rem; width: auto; font-weight: 600;">
+                  <option value="Placed" {% if o.status == 'Placed' %}selected{% endif %}>Placed</option>
+                  <option value="Preparing" {% if o.status == 'Preparing' %}selected{% endif %}>Preparing</option>
+                  <option value="Out for delivery" {% if o.status == 'Out for delivery' %}selected{% endif %}>Out for delivery</option>
+                  <option value="Delivered" {% if o.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                  <option value="Cancelled" {% if o.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                </select>
+                <button type="submit" class="btn-primary" style="padding: 0.35rem 0.7rem; font-size: 0.8rem;">
+                  Save
+                </button>
+              </form>
+              <div style="margin-top: 4px;">
+                <span class="status-badge status-{{ clean_status }}">
+                  ● {{ o.status }}
+                </span>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="6" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+            No orders found matching the filter "{{ status_filter }}".
+          </td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}Your Tray & Checkout - Hostel Bites{% endblock %}
+
+{% block content %}
+<div class="section-header" style="margin-bottom: 2rem;">
+  <div>
+    <h1 class="section-title">Your Food Tray & Checkout</h1>
+    <p style="color: var(--text-muted); font-size: 0.95rem;">Review items and confirm hostel room delivery</p>
+  </div>
+</div>
+
+{% if cart %}
+  <div class="cart-layout">
+    <!-- Left Column: Cart Items -->
+    <div class="cart-items-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; padding-bottom: 0.8rem; border-bottom: 1px solid var(--border);">
+        <h3 style="font-size: 1.15rem; font-weight: 700;">Selected Canteen Dishes</h3>
+        <span style="font-size: 0.85rem; color: var(--text-muted);"><span class="cart-badge">{{ cart_count }}</span> items</span>
+      </div>
+
+      <div class="cart-items-list">
+        {% for item_id, item in cart.items() %}
+          <div class="cart-item-row" id="cart-row-{{ item_id }}">
+            <div class="cart-item-info">
+              <img
+                src="{{ item.image_url }}"
+                alt="{{ item.name }}"
+                class="cart-item-thumb"
+                onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80';"
+              >
+              <div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  {% if item.is_veg %}
+                    <span class="badge-veg-symbol" style="width: 10px; height: 10px;"></span>
+                  {% else %}
+                    <span class="badge-nonveg-symbol" style="width: 10px; height: 10px;"></span>
+                  {% endif %}
+                  <div class="cart-item-title">{{ item.name }}</div>
+                </div>
+                <div class="cart-item-price">₹{{ "%.0f"|format(item.price) }} each</div>
+              </div>
+            </div>
+
+            <!-- Quantity Control -->
+            <div style="display: flex; align-items: center; gap: 1rem;">
+              <div class="qty-control">
+                <button type="button" class="qty-btn" onclick="updateCartQty('{{ item_id }}', -1)">&minus;</button>
+                <span class="qty-value" id="qty-{{ item_id }}">{{ item.quantity }}</span>
+                <button type="button" class="qty-btn" onclick="updateCartQty('{{ item_id }}', 1)">&plus;</button>
+              </div>
+
+              <button
+                type="button"
+                onclick="removeCartItem('{{ item_id }}')"
+                style="background: none; border: none; color: var(--text-light); cursor: pointer; font-size: 1.1rem;"
+                title="Remove item"
+              >
+                &times;
+              </button>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <div style="margin-top: 1.5rem; text-align: right;">
+        <a href="{{ url_for('index') }}" class="btn-outline" style="font-size: 0.88rem;">
+          &plus; Add More Items from Menu
+        </a>
+      </div>
+    </div>
+
+    <!-- Right Column: Delivery Details & Payment -->
+    <div class="checkout-summary-card">
+      <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 1.2rem;">Delivery & Payment</h3>
+
+      {% if not is_student_logged_in %}
+        <div style="background: var(--warning-bg); border-left: 4px solid var(--warning); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
+          <p style="font-size: 0.88rem; color: #92400E; margin-bottom: 0.5rem; font-weight: 600;">
+            ⚠️ Please log in to complete your hostel room order.
+          </p>
+          <a href="{{ url_for('login', next=url_for('view_cart')) }}" class="btn-primary" style="padding: 0.4rem 1rem; font-size: 0.85rem;">
+            Login as Student
+          </a>
+        </div>
+      {% endif %}
+
+      <form action="{{ url_for('checkout') }}" method="POST">
+        <!-- Delivery Details -->
+        <div class="form-group">
+          <label class="form-label">Hostel Block</label>
+          <select name="hostel_block" class="form-control" required>
+            {% for h in hostels %}
+              <option value="{{ h }}" {% if user_info.hostel == h %}selected{% endif %}>
+                {{ h }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Room Number</label>
+            <input
+              type="text"
+              name="room_no"
+              class="form-control"
+              placeholder="e.g. 304, A-15"
+              value="{{ user_info.room }}"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Phone for Delivery</label>
+            <input
+              type="tel"
+              name="phone"
+              class="form-control"
+              placeholder="10-digit mobile"
+              value="{{ user_info.phone }}"
+              required
+            >
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Delivery Note (Optional)</label>
+          <input
+            type="text"
+            name="delivery_notes"
+            class="form-control"
+            placeholder="e.g. Knock on door, call when at hostel gate"
+          >
+        </div>
+
+        <!-- Payment Method -->
+        <label class="form-label" style="margin-top: 1rem;">Payment Method</label>
+        <div class="payment-options-group">
+          <label class="payment-card selected">
+            <input type="radio" name="payment_method" value="Cash on Delivery" checked style="accent-color: var(--primary);">
+            <div>
+              <strong>💵 Cash on Delivery (COD)</strong>
+              <div style="font-size: 0.78rem; color: var(--text-muted);">Pay the delivery student when food reaches your room</div>
+            </div>
+          </label>
+
+          <label class="payment-card">
+            <input type="radio" name="payment_method" value="UPI Payment" style="accent-color: var(--primary);">
+            <div>
+              <strong>📱 Pay via UPI / QR Code</strong>
+              <div style="font-size: 0.78rem; color: var(--text-muted);">Scan Google Pay, PhonePe or Paytm QR</div>
+            </div>
+          </label>
+        </div>
+
+        <!-- Dynamic UPI QR Simulation Preview -->
+        <div id="upi-qr-preview" style="display: none; background: #FAF5FF; border: 1.5px dashed #A855F7; border-radius: var(--radius-md); padding: 1rem; text-align: center; margin-bottom: 1.2rem;">
+          <p style="font-size: 0.85rem; font-weight: 700; color: #6B21A8; margin-bottom: 0.5rem;">
+            Scan Canteen UPI QR Code:
+          </p>
+          <div style="display: inline-block; background: white; padding: 10px; border-radius: 8px; box-shadow: var(--shadow-sm);">
+            <svg width="120" height="120" viewBox="0 0 100 100">
+              <rect width="100" height="100" fill="white"/>
+              <!-- Mock QR shapes -->
+              <rect x="10" y="10" width="25" height="25" fill="#1E293B"/>
+              <rect x="15" y="15" width="15" height="15" fill="white"/>
+              <rect x="18" y="18" width="9" height="9" fill="#1E293B"/>
+              
+              <rect x="65" y="10" width="25" height="25" fill="#1E293B"/>
+              <rect x="70" y="15" width="15" height="15" fill="white"/>
+              <rect x="73" y="18" width="9" height="9" fill="#1E293B"/>
+
+              <rect x="10" y="65" width="25" height="25" fill="#1E293B"/>
+              <rect x="15" y="70" width="15" height="15" fill="white"/>
+              <rect x="18" y="73" width="9" height="9" fill="#1E293B"/>
+
+              <rect x="42" y="15" width="8" height="8" fill="#1E293B"/>
+              <rect x="42" y="30" width="8" height="8" fill="#1E293B"/>
+              <rect x="42" y="45" width="16" height="8" fill="#1E293B"/>
+              <rect x="65" y="45" width="8" height="16" fill="#1E293B"/>
+              <rect x="45" y="70" width="12" height="12" fill="#1E293B"/>
+              <rect x="75" y="70" width="15" height="15" fill="#1E293B"/>
+            </svg>
+          </div>
+          <p style="font-size: 0.8rem; color: #4B5563; margin-top: 0.4rem;">
+            UPI ID: <strong style="color: var(--dark);">collegecanteen@upi</strong>
+          </p>
+          <small style="color: #6B7280; font-size: 0.72rem;">(Simulated instant campus canteen UPI QR)</small>
+        </div>
+
+        <!-- Bill Details -->
+        <div style="margin-top: 1.5rem; background: var(--bg-main); border-radius: var(--radius-md); padding: 1.2rem;">
+          <div class="order-summary-row">
+            <span>Item Subtotal</span>
+            <span id="summary-subtotal">₹{{ "%.2f"|format(subtotal) }}</span>
+          </div>
+
+          <div class="order-summary-row">
+            <span>Hostel Room Delivery</span>
+            <span id="summary-delivery">
+              {% if delivery_fee > 0 %}
+                ₹{{ "%.2f"|format(delivery_fee) }}
+              {% else %}
+                <strong style="color: var(--success);">FREE</strong>
+              {% endif %}
+            </span>
+          </div>
+
+          <div class="order-summary-row total-row">
+            <span>To Pay</span>
+            <span id="summary-total" style="color: var(--primary);">₹{{ "%.2f"|format(total) }}</span>
+          </div>
+        </div>
+
+        {% if is_student_logged_in %}
+          <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.9rem; margin-top: 1.2rem; font-size: 1.05rem;">
+            🚀 Confirm Order & Deliver to Room
+          </button>
+        {% else %}
+          <a href="{{ url_for('login', next=url_for('view_cart')) }}" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.9rem; margin-top: 1.2rem; font-size: 1.05rem;">
+            Login to Place Order
+          </a>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+{% else %}
+  <div style="background: white; border-radius: var(--radius-lg); padding: 4rem 2rem; text-align: center; border: 1px solid var(--border); max-width: 600px; margin: 0 auto;">
+    <div style="font-size: 4rem; margin-bottom: 1rem;">🛒</div>
+    <h2 style="font-size: 1.8rem; font-weight: 800; color: var(--dark);">Your Tray is Empty</h2>
+    <p style="color: var(--text-muted); margin: 0.8rem 0 2rem; font-size: 0.98rem;">
+      Looks like you haven't added any delicious food from the canteen yet!
+    </p>
+    <a href="{{ url_for('index') }}" class="btn-primary" style="padding: 0.8rem 1.8rem;">
+      Browse Canteen Menu
+    </a>
+  </div>
+{% endif %}
+{% endblock %}

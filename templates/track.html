@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Track Order {{ order.order_number }} - Hostel Bites{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+  
+  <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <a href="{{ url_for('my_orders') }}" style="color: var(--text-muted); font-size: 0.88rem; font-weight: 600;">
+        &larr; Back to My Orders
+      </a>
+      <h1 class="section-title" style="margin-top: 0.3rem;">Order Tracking</h1>
+    </div>
+
+    <div>
+      <button onclick="window.location.reload()" class="btn-outline" style="font-size: 0.85rem; padding: 0.4rem 1rem;">
+        🔄 Refresh Status
+      </button>
+    </div>
+  </div>
+
+  <div class="tracking-card">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid var(--border-light); padding-bottom: 1.2rem;">
+      <div>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">ORDER IDENTIFIER</span>
+        <h2 style="font-size: 1.6rem; font-weight: 800; color: var(--primary);">{{ order.order_number }}</h2>
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">
+          Ordered at: {{ order.created_at }}
+        </div>
+      </div>
+
+      <div style="text-align: right;">
+        {% set clean_status = order.status.replace(' ', '') %}
+        <span class="status-badge status-{{ clean_status }}" style="font-size: 0.95rem; padding: 6px 14px;">
+          ● {{ order.status }}
+        </span>
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 6px;">
+          Est. Arrival: <strong>15-20 Mins</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stepper Component -->
+    <div class="stepper-wrapper">
+      <div class="stepper-progress-line"></div>
+      
+      <!-- Progress Fill Percentage Calculation -->
+      {% set fill_width = 0 %}
+      {% if current_step == 1 %}{% set fill_width = 0 %}
+      {% elif current_step == 2 %}{% set fill_width = 33 %}
+      {% elif current_step == 3 %}{% set fill_width = 66 %}
+      {% elif current_step >= 4 %}{% set fill_width = 100 %}
+      {% endif %}
+
+      <div class="stepper-progress-fill" style="width: {{ fill_width }}%;"></div>
+
+      <!-- Step 1 -->
+      <div class="step-node {% if current_step >= 1 %}completed{% endif %} {% if current_step == 1 %}active{% endif %}">
+        <div class="step-icon-circle">
+          {% if current_step > 1 %}✓{% else %}📝{% endif %}
+        </div>
+        <div class="step-label">Order Placed</div>
+        <small style="color: var(--text-light); font-size: 0.72rem;">Received</small>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step-node {% if current_step >= 2 %}completed{% endif %} {% if current_step == 2 %}active{% endif %}">
+        <div class="step-icon-circle">
+          {% if current_step > 2 %}✓{% else %}🍳{% endif %}
+        </div>
+        <div class="step-label">Preparing</div>
+        <small style="color: var(--text-light); font-size: 0.72rem;">In Kitchen</small>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step-node {% if current_step >= 3 %}completed{% endif %} {% if current_step == 3 %}active{% endif %}">
+        <div class="step-icon-circle">
+          {% if current_step > 3 %}✓{% else %}🛵{% endif %}
+        </div>
+        <div class="step-label">Out for Delivery</div>
+        <small style="color: var(--text-light); font-size: 0.72rem;">To Your Hostel</small>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="step-node {% if current_step == 4 %}completed{% endif %}">
+        <div class="step-icon-circle">
+          {% if current_step == 4 %}✓{% else %}🚪{% endif %}
+        </div>
+        <div class="step-label">Delivered</div>
+        <small style="color: var(--text-light); font-size: 0.72rem;">At Room Door</small>
+      </div>
+    </div>
+
+    <!-- Real-time Status Message Banner -->
+    <div style="background: var(--bg-main); border-radius: var(--radius-md); padding: 1.2rem; margin-top: 1.5rem; display: flex; align-items: center; gap: 1rem;">
+      <div style="font-size: 2rem;">
+        {% if current_step == 1 %}🛎️
+        {% elif current_step == 2 %}🔥
+        {% elif current_step == 3 %}🚀
+        {% elif current_step == 4 %}🎉
+        {% else %}ℹ️{% endif %}
+      </div>
+      <div>
+        <h4 style="font-size: 1rem; font-weight: 700; color: var(--dark);">
+          {% if current_step == 1 %}Order Placed & Confirmed by Canteen
+          {% elif current_step == 2 %}Chef is cooking your fresh food!
+          {% elif current_step == 3 %}Delivery partner is heading towards {{ order.hostel_block }}
+          {% elif current_step == 4 %}Food delivered! Enjoy your meal.
+          {% else %}Order status: {{ order.status }}
+          {% endif %}
+        </h4>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">
+          {% if current_step == 3 %}
+            Please keep your phone active ({{ order.phone }}) so the delivery person can call when outside Room {{ order.room_no }}.
+          {% elif current_step == 4 %}
+            Hope you liked your canteen treats! Leave a review on your next order.
+          {% else %}
+            Average preparation time: 10-15 minutes.
+          {% endif %}
+        </p>
+      </div>
+    </div>
+
+    <!-- Room & Student Details -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.8rem; padding-top: 1.5rem; border-top: 1px solid var(--border-light);">
+      <div>
+        <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem;">
+          Delivery Destination
+        </h4>
+        <p style="font-size: 0.95rem; font-weight: 700; color: var(--dark); margin: 0;">
+          {{ order.hostel_block }}
+        </p>
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin: 2px 0 0;">
+          Room Number: <strong style="color: var(--dark);">{{ order.room_no }}</strong>
+        </p>
+        {% if order.delivery_notes %}
+          <p style="font-size: 0.82rem; color: #4B5563; background: #F1F5F9; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 5px;">
+            Note: {{ order.delivery_notes }}
+          </p>
+        {% endif %}
+      </div>
+
+      <div>
+        <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem;">
+          Payment & Contact
+        </h4>
+        <p style="font-size: 0.92rem; color: var(--dark); margin: 0;">
+          Mode: <strong>{{ order.payment_method }}</strong>
+        </p>
+        <p style="font-size: 0.92rem; color: var(--dark); margin: 2px 0 0;">
+          Total: <strong style="color: var(--primary);">₹{{ "%.2f"|format(order.total_amount) }}</strong>
+        </p>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin: 2px 0 0;">
+          Phone: {{ order.phone }}
+        </p>
+      </div>
+    </div>
+
+    <!-- Order Items List -->
+    <div style="margin-top: 1.8rem;">
+      <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.8rem;">
+        Order Items
+      </h4>
+      <div style="border: 1px solid var(--border-light); border-radius: var(--radius-md); overflow: hidden;">
+        {% for itm in items %}
+          <div style="display: flex; justify-content: space-between; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-light); background: white;">
+            <span>{{ itm.quantity }}x {{ itm.item_name }}</span>
+            <span style="font-weight: 600;">₹{{ "%.2f"|format(itm.total_price) }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Canteen Contact Help -->
+    <div style="margin-top: 2rem; text-align: center; font-size: 0.85rem; color: var(--text-muted); border-top: 1px dashed var(--border); padding-top: 1.2rem;">
+      Questions about your order? Call Canteen Desk: <strong style="color: var(--dark);">+91 98765-43210</strong>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

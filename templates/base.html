@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Hostel Bites - Campus Canteen Delivery{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="{{ url_for('index') }}" class="brand-logo">
+        <div class="brand-icon">
+          🍱
+        </div>
+        <span>Hostel<span class="brand-highlight">Bites</span></span>
+      </a>
+
+      <ul class="nav-links">
+        <li>
+          <a href="{{ url_for('index') }}" class="nav-link">
+            <span>Menu</span>
+          </a>
+        </li>
+
+        {% if is_student_logged_in %}
+          <li>
+            <a href="{{ url_for('my_orders') }}" class="nav-link">
+              <span>My Orders</span>
+            </a>
+          </li>
+          <li class="user-badge">
+            <div class="user-avatar-mini">{{ current_user_name[0] }}</div>
+            <span>{{ current_user_name.split(' ')[0] }}</span>
+          </li>
+          <li>
+            <a href="{{ url_for('logout') }}" class="nav-link" style="color: var(--danger); font-size: 0.85rem;" title="Logout">
+              🚪 Logout
+            </a>
+          </li>
+        {% else %}
+          <li>
+            <a href="{{ url_for('login') }}" class="nav-link">
+              Login
+            </a>
+          </li>
+          <li>
+            <a href="{{ url_for('register') }}" class="btn-primary" style="padding: 0.4rem 0.9rem; font-size: 0.85rem;">
+              Sign Up
+            </a>
+          </li>
+        {% endif %}
+
+        <!-- Cart Button -->
+        <li>
+          <a href="{{ url_for('view_cart') }}" class="cart-btn" id="nav-cart-btn">
+            🛒 <span>Tray</span>
+            <span class="cart-badge">{{ cart_count }}</span>
+          </a>
+        </li>
+
+        <!-- Admin Portal Link -->
+        {% if is_admin_logged_in %}
+          <li>
+            <a href="{{ url_for('admin_dashboard') }}" class="admin-badge" style="text-decoration:none;">
+              Admin Portal
+            </a>
+          </li>
+        {% else %}
+          <li>
+            <a href="{{ url_for('admin_login') }}" class="nav-link" style="font-size: 0.8rem; opacity: 0.7;" title="College Canteen Staff Login">
+              🔑 Staff
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Flash Messages -->
+  <div class="main-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-container">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">
+              <span>{{ message }}</span>
+              <button class="alert-close" onclick="this.parentElement.remove()">&times;</button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-content">
+      <div>
+        <strong>HostelBites</strong> &copy; 2026 College Campus Food Delivery Project
+        <p style="font-size: 0.8rem; margin-top: 4px;">Delivering directly from Main Canteen to Hostel Rooms</p>
+      </div>
+      <div>
+        <span>🕒 Operational: <strong>10:00 AM - 11:30 PM</strong></span> &bull; 
+        <span>📍 Main Campus Canteen</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

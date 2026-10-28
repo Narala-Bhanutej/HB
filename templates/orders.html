@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}My Orders - Hostel Bites{% endblock %}
+
+{% block content %}
+<div class="section-header" style="margin-bottom: 2rem;">
+  <div>
+    <h1 class="section-title">My Canteen Orders</h1>
+    <p style="color: var(--text-muted); font-size: 0.95rem;">Track live orders and view past hostel room deliveries</p>
+  </div>
+  <a href="{{ url_for('index') }}" class="btn-primary" style="font-size: 0.88rem;">
+    &plus; Order More Food
+  </a>
+</div>
+
+{% if orders %}
+  <div style="display: flex; flex-direction: column; gap: 1.8rem;">
+    {% for entry in orders %}
+      {% set o = entry.order %}
+      <div style="background: white; border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 1.8rem; box-shadow: var(--shadow-sm);">
+        
+        <!-- Order Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; padding-bottom: 1.2rem; border-bottom: 1px solid var(--border-light);">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.8rem;">
+              <span style="font-weight: 800; font-size: 1.15rem; color: var(--dark);">
+                {{ o.order_number }}
+              </span>
+              {% set clean_status = o.status.replace(' ', '') %}
+              <span class="status-badge status-{{ clean_status }}">
+                ● {{ o.status }}
+              </span>
+            </div>
+            <div style="font-size: 0.84rem; color: var(--text-muted); margin-top: 4px;">
+              Placed on {{ o.created_at }} &bull; Deliver to <strong>{{ o.hostel_block }}, Room {{ o.room_no }}</strong>
+            </div>
+          </div>
+
+          <div style="text-align: right;">
+            <div style="font-size: 1.25rem; font-weight: 800; color: var(--dark);">
+              ₹{{ "%.2f"|format(o.total_amount) }}
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">
+              via {{ o.payment_method }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Mini Stepper Visualizer -->
+        <div style="padding: 1.2rem 0; margin-bottom: 0.5rem;">
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; text-align: center;">
+            
+            <!-- Step 1: Placed -->
+            <div style="padding: 0.6rem; border-radius: var(--radius-sm); background: {% if o.status in ['Placed', 'Preparing', 'Out for delivery', 'Delivered'] %}var(--primary-subtle){% else %}#F1F5F9{% endif %}; border: 1px solid {% if o.status in ['Placed', 'Preparing', 'Out for delivery', 'Delivered'] %}rgba(255,87,34,0.3){% else %}transparent{% endif %};">
+              <div style="font-size: 1.1rem;">📝</div>
+              <div style="font-size: 0.75rem; font-weight: 700; color: {% if o.status in ['Placed', 'Preparing', 'Out for delivery', 'Delivered'] %}var(--primary-dark){% else %}var(--text-light){% endif %};">Placed</div>
+            </div>
+
+            <!-- Step 2: Preparing -->
+            <div style="padding: 0.6rem; border-radius: var(--radius-sm); background: {% if o.status in ['Preparing', 'Out for delivery', 'Delivered'] %}var(--primary-subtle){% else %}#F1F5F9{% endif %}; border: 1px solid {% if o.status in ['Preparing', 'Out for delivery', 'Delivered'] %}rgba(255,87,34,0.3){% else %}transparent{% endif %};">
+              <div style="font-size: 1.1rem;">🍳</div>
+              <div style="font-size: 0.75rem; font-weight: 700; color: {% if o.status in ['Preparing', 'Out for delivery', 'Delivered'] %}var(--primary-dark){% else %}var(--text-light){% endif %};">Preparing</div>
+            </div>
+
+            <!-- Step 3: Out for Delivery -->
+            <div style="padding: 0.6rem; border-radius: var(--radius-sm); background: {% if o.status in ['Out for delivery', 'Delivered'] %}var(--primary-subtle){% else %}#F1F5F9{% endif %}; border: 1px solid {% if o.status in ['Out for delivery', 'Delivered'] %}rgba(255,87,34,0.3){% else %}transparent{% endif %};">
+              <div style="font-size: 1.1rem;">🛵</div>
+              <div style="font-size: 0.75rem; font-weight: 700; color: {% if o.status in ['Out for delivery', 'Delivered'] %}var(--primary-dark){% else %}var(--text-light){% endif %};">On the Way</div>
+            </div>
+
+            <!-- Step 4: Delivered -->
+            <div style="padding: 0.6rem; border-radius: var(--radius-sm); background: {% if o.status == 'Delivered' %}var(--success-bg){% else %}#F1F5F9{% endif %}; border: 1px solid {% if o.status == 'Delivered' %}rgba(16,185,129,0.3){% else %}transparent{% endif %};">
+              <div style="font-size: 1.1rem;">✅</div>
+              <div style="font-size: 0.75rem; font-weight: 700; color: {% if o.status == 'Delivered' %}#065F46{% else %}var(--text-light){% endif %};">Delivered</div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Ordered Items Summary -->
+        <div style="background: var(--bg-main); border-radius: var(--radius-md); padding: 0.9rem 1.2rem; margin-bottom: 1.2rem; font-size: 0.88rem;">
+          <strong style="color: var(--dark); display: block; margin-bottom: 0.4rem;">Dishes:</strong>
+          <ul style="padding-left: 1.2rem; color: var(--text-muted); margin: 0;">
+            {% for itm in entry.order_items %}
+              <li>{{ itm.quantity }}x {{ itm.item_name }} &bull; ₹{{ "%.2f"|format(itm.total_price) }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.8rem;">
+          <a href="{{ url_for('track_order', order_number=o.order_number) }}" class="btn-primary" style="font-size: 0.85rem; padding: 0.5rem 1.2rem;">
+            📍 Live Status Tracker
+          </a>
+        </div>
+
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div style="background: white; border-radius: var(--radius-lg); padding: 4rem 2rem; text-align: center; border: 1px solid var(--border); max-width: 600px; margin: 0 auto;">
+    <div style="font-size: 3.5rem; margin-bottom: 1rem;">📦</div>
+    <h3 style="font-size: 1.6rem; font-weight: 800; color: var(--dark);">No orders yet</h3>
+    <p style="color: var(--text-muted); margin: 0.6rem 0 1.8rem; font-size: 0.95rem;">
+      When you order food to your room, your order status and history will appear here.
+    </p>
+    <a href="{{ url_for('index') }}" class="btn-primary">Browse Canteen Menu</a>
+  </div>
+{% endif %}
+{% endblock %}
